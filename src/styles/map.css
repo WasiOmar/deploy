@@ -1,0 +1,79 @@
+.map-container {
+  width: 100%;
+  height: 400px;
+  position: relative;
+  z-index: 1;
+  background-color: #f0f0f0;
+  overflow: hidden;
+}
+
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  z-index: 1;
+}
+
+/* Fix for Leaflet controls */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 1000 !important;
+}
+
+/* Fix for Leaflet markers */
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+  z-index: 1000 !important;
+}
+
+/* Fix for map panes */
+.leaflet-map-pane {
+  z-index: 2 !important;
+}
+
+.leaflet-tile-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-overlay-pane {
+  z-index: 3 !important;
+}
+
+.leaflet-marker-pane {
+  z-index: 4 !important;
+}
+
+.leaflet-popup-pane {
+  z-index: 5 !important;
+}
+
+.leaflet-control {
+  z-index: 1000 !important;
+}
+
+/* Fix for map interactions */
+.leaflet-interactive {
+  cursor: pointer;
+}
+
+/* Ensure tiles are visible */
+.leaflet-tile {
+  visibility: inherit !important;
+  opacity: 1 !important;
+}
+
+/* Fix for Safari */
+.leaflet-safari .leaflet-tile {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Fix for map container in forms */
+.form-map-container {
+  position: relative;
+  z-index: 1;
+  height: 400px;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+} 
