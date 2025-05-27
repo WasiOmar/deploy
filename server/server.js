@@ -59,8 +59,17 @@ app.use(cors({
     ? ['https://deploy-wkrs.vercel.app', 'http://localhost:3000']
     : ['http://localhost:3000'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'x-admin',
+    'Origin',
+    'X-Requested-With',
+    'Accept'
+  ],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 hours in seconds
 }));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
