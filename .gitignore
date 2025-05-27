@@ -1,8 +1,8 @@
-# Dependencies
-node_modules/
+# Only ignore node_modules and env files
+node_modules
+.env
 
 # Environment variables
-.env
 .env.*
 
 # Logs
@@ -22,27 +22,9 @@ dist/
 .next/
 out/
 
-# Server files
-server.js
-server.ts
-/app.js
-/app.ts
-express/
-api/
-functions/
-
-# OS / IDE
+# IDE
 .vscode/
-*.swp
 
-# Misc cache
+# Cache
 .cache/
 coverage/
-*.log
-
-# Optional: if using Vite
-.vite/
-
-# Optional: if using Turbo or Nx
-turbo/
-nx-cache/
