@@ -3,8 +3,8 @@ import MapContainer from './MapContainer';
 import '../styles/map.css';
 
 const LocationPicker = ({ onLocationSelect, initialLocation }) => {
-  // Default to Riyadh, Saudi Arabia coordinates
-  const defaultLocation = useMemo(() => ({ lat: 24.7136, lng: 46.6753 }), []);
+  // Default to a more neutral location (0,0) if geolocation fails
+  const defaultLocation = useMemo(() => ({ lat: 0, lng: 0 }), []);
   const [selectedLocation, setSelectedLocation] = useState(initialLocation || null);
   const [tempLocation, setTempLocation] = useState(null);
   const [searchInput, setSearchInput] = useState('');
@@ -13,24 +13,21 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
   const [searchHistory, setSearchHistory] = useState([]);
   const [mapKey, setMapKey] = useState(0);
 
-  useEffect(() => {
-    if (initialLocation) {
-      setSelectedLocation(initialLocation);
-    }
-  }, [initialLocation]);
-
   // Initialize with geolocation
   useEffect(() => {
     let isMounted = true;
 
     const initLocation = async () => {
-      if (!navigator.geolocation || initialLocation) return;
+      if (initialLocation) {
+        setSelectedLocation(initialLocation);
+        return;
+      }
 
       try {
         const position = await new Promise((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject, {
             enableHighAccuracy: true,
-            timeout: 5000,
+            timeout: 10000,
             maximumAge: 0
           });
         });
@@ -40,14 +37,39 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           };
+          console.log('Got current location:', currentLocation);
           setSelectedLocation(currentLocation);
           setTempLocation(currentLocation);
+          if (onLocationSelect) {
+            onLocationSelect(currentLocation);
+          }
         }
       } catch (error) {
         console.error('Geolocation error:', error);
         if (isMounted) {
-          setSelectedLocation(defaultLocation);
-          setTempLocation(defaultLocation);
+          // Try IP-based geolocation as fallback
+          try {
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+            if (data.latitude && data.longitude) {
+              const ipLocation = {
+                lat: data.latitude,
+                lng: data.longitude
+              };
+              console.log('Got IP location:', ipLocation);
+              setSelectedLocation(ipLocation);
+              setTempLocation(ipLocation);
+              if (onLocationSelect) {
+                onLocationSelect(ipLocation);
+              }
+            } else {
+              throw new Error('No location data');
+            }
+          } catch (ipError) {
+            console.error('IP geolocation error:', ipError);
+            setSelectedLocation(defaultLocation);
+            setTempLocation(defaultLocation);
+          }
         }
       }
     };
@@ -57,7 +79,7 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
     return () => {
       isMounted = false;
     };
-  }, [initialLocation, defaultLocation]);
+  }, [initialLocation, defaultLocation, onLocationSelect]);
 
   // Handle location search
   const handleSearch = useCallback(async () => {
@@ -73,19 +95,10 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
         return [...new Set(newHistory)];
       });
 
-      // Try first with country code
-      let response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&countrycodes=sa&limit=5`
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=5`
       );
-      let data = await response.json();
-
-      // If no results, try without country restriction
-      if (!data || data.length === 0) {
-        response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchInput)}&limit=5`
-        );
-        data = await response.json();
-      }
+      const data = await response.json();
 
       if (data && data.length > 0) {
         const location = {
@@ -94,7 +107,10 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
         };
         setSelectedLocation(location);
         setTempLocation(location);
-        setMapKey(prev => prev + 1); // Force map refresh
+        if (onLocationSelect) {
+          onLocationSelect(location);
+        }
+        setMapKey(prev => prev + 1);
       } else {
         setError('Location not found. Please try a different search term.');
       }
@@ -104,7 +120,7 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
     } finally {
       setIsSearching(false);
     }
-  }, [searchInput, isSearching]);
+  }, [searchInput, isSearching, onLocationSelect]);
 
   const handleLocationSelect = (location) => {
     if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
@@ -145,11 +161,32 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
 
   return (
     <div className="space-y-4">
+      <div className="flex space-x-2 mb-4">
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          placeholder="Search for a location..."
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+        />
+        <button
+          onClick={handleSearch}
+          disabled={isSearching}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+        >
+          {isSearching ? 'Searching...' : 'Search'}
+        </button>
+      </div>
+
       <div className="h-[400px] relative rounded-lg overflow-hidden border border-gray-300">
         <MapContainer
           key={mapKey}
-          location={selectedLocation || tempLocation}
-          onLocationSelect={handleLocationSelect}
+          location={selectedLocation || tempLocation || defaultLocation}
+          onLocationSelect={(loc) => {
+            setTempLocation(loc);
+            onLocationSelect(loc);
+          }}
           draggable={true}
         />
       </div>
@@ -158,31 +195,30 @@ const LocationPicker = ({ onLocationSelect, initialLocation }) => {
         <p className="text-sm text-red-600">{error}</p>
       )}
 
-      <div className="flex space-x-4">
-        {tempLocation && (
-          <button
-            type="button"
-            onClick={handleConfirmLocation}
-            className="flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Confirm Location
-          </button>
-        )}
-        {selectedLocation && (
-          <button
-            type="button"
-            onClick={handleResetLocation}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Reset Location
-          </button>
-        )}
-      </div>
+      {searchHistory.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm text-gray-600 mb-2">Recent searches:</p>
+          <div className="flex flex-wrap gap-2">
+            {searchHistory.map((term, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setSearchInput(term);
+                  handleSearch();
+                }}
+                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200"
+              >
+                {term}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {(selectedLocation || tempLocation) && (
         <div className="p-3 bg-gray-50 rounded-md">
           <p className="text-sm text-gray-600">
-            {selectedLocation ? 'Selected' : 'Temporary'} location: {(selectedLocation || tempLocation).lat.toFixed(6)}, {(selectedLocation || tempLocation).lng.toFixed(6)}
+            Selected location: {(selectedLocation || tempLocation).lat.toFixed(6)}, {(selectedLocation || tempLocation).lng.toFixed(6)}
           </p>
         </div>
       )}
