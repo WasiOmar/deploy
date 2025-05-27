@@ -4,6 +4,9 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 
+// Set Mongoose strictQuery option
+mongoose.set('strictQuery', false);
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
@@ -94,10 +97,21 @@ app.use((err, req, res, next) => {
 
 // For local development
 if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3004;
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  const startServer = (port) => {
+    const server = app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    }).on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.log(`Port ${port} is busy, trying ${port + 1}...`);
+        startServer(port + 1);
+      } else {
+        console.error('Server error:', error);
+      }
+    });
+  };
+
+  // Start with port 3004, will automatically try 3005, 3006, etc. if busy
+  startServer(3004);
 }
 
 // Export for Vercel
