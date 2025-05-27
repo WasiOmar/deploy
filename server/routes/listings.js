@@ -2,26 +2,14 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const axios = require('axios');
+const FormData = require('form-data');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
 const Listing = require('../models/Listing');
 
-// Configure multer for image upload
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = 'uploads/';
-    // Create the uploads directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
-
+// Configure multer for temporary storage
+const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
   limits: {
@@ -39,12 +27,48 @@ const upload = multer({
   }
 });
 
+// Helper function to upload image to ImgBB
+async function uploadToImgBB(imageBuffer, filename) {
+  try {
+    const formData = new FormData();
+    formData.append('image', imageBuffer, filename);
+    
+    const response = await axios.post('https://api.imgbb.com/1/upload', formData, {
+      params: {
+        key: '9e0b659b1a042f21ef4c2b88b9e3901d'
+      },
+      headers: formData.getHeaders()
+    });
+
+    return response.data.data.url;
+  } catch (error) {
+    console.error('Error uploading to ImgBB:', error);
+    throw new Error('Failed to upload image');
+  }
+}
+
 // Get all listings
 router.get('/', async (req, res) => {
   try {
-    const listings = await Listing.find()
+    const { limit, approved } = req.query;
+    
+    // Build query
+    const query = {};
+    if (approved === 'true') {
+      query.approved = true;
+    }
+
+    // Build database query
+    let listingsQuery = Listing.find(query)
       .sort({ createdAt: -1 })
-      .populate('user', 'firstName lastName email'); // Add this to get user details
+      .populate('user', 'firstName lastName email');
+
+    // Apply limit if specified
+    if (limit) {
+      listingsQuery = listingsQuery.limit(parseInt(limit));
+    }
+
+    const listings = await listingsQuery;
     res.json(listings);
   } catch (err) {
     res.status(500).json({ error: 'Error fetching listings' });
@@ -72,8 +96,14 @@ router.post('/create', auth, upload.array('images', 5), async (req, res) => {
     console.log('Received files:', req.files);
     console.log('Authenticated user:', req.user);
 
-    const imageFiles = req.files;
-    const imagePaths = imageFiles ? imageFiles.map(file => file.path) : [];
+    // Upload images to ImgBB
+    const imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const imageUrl = await uploadToImgBB(file.buffer, file.originalname);
+        imageUrls.push(imageUrl);
+      }
+    }
 
     // Validate required fields
     const requiredFields = ['title', 'description', 'price', 'category', 'condition'];
@@ -88,7 +118,6 @@ router.post('/create', auth, upload.array('images', 5), async (req, res) => {
     if (req.body.meetupLocation) {
       try {
         meetupLocation = JSON.parse(req.body.meetupLocation);
-        // Validate meetup location format
         if (!meetupLocation.lat || !meetupLocation.lng) {
           return res.status(400).json({ error: 'Invalid meetup location format' });
         }
@@ -98,7 +127,7 @@ router.post('/create', auth, upload.array('images', 5), async (req, res) => {
     }
 
     const listing = new Listing({
-      user: req.user.id, // Set the authenticated user's ID
+      user: req.user.id,
       title: req.body.title,
       description: req.body.description,
       price: parseFloat(req.body.price),
@@ -106,7 +135,7 @@ router.post('/create', auth, upload.array('images', 5), async (req, res) => {
       condition: req.body.condition,
       location: req.body.location,
       meetupLocation: meetupLocation,
-      images: imagePaths
+      images: imageUrls // Store ImgBB URLs instead of local paths
     });
 
     await listing.save();
@@ -131,11 +160,12 @@ router.put('/:id', auth, upload.array('images', 5), async (req, res) => {
     }
 
     // Handle new images if uploaded
-    const imageFiles = req.files;
-    let imagePaths = listing.images; // Keep existing images
-    if (imageFiles && imageFiles.length > 0) {
-      const newImagePaths = imageFiles.map(file => file.path);
-      imagePaths = [...imagePaths, ...newImagePaths];
+    let imageUrls = listing.images; // Keep existing images
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const imageUrl = await uploadToImgBB(file.buffer, file.originalname);
+        imageUrls.push(imageUrl);
+      }
     }
 
     const updatedListing = await Listing.findByIdAndUpdate(
@@ -146,7 +176,7 @@ router.put('/:id', auth, upload.array('images', 5), async (req, res) => {
         price: parseFloat(req.body.price),
         category: req.body.category,
         condition: req.body.condition,
-        images: imagePaths,
+        images: imageUrls,
         status: req.body.status,
         updatedAt: Date.now()
       },
@@ -192,14 +222,8 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to delete this listing' });
     }
 
-    // Delete associated images
-    listing.images.forEach(imagePath => {
-      try {
-        fs.unlinkSync(imagePath);
-      } catch (err) {
-        console.error('Error deleting image:', err);
-      }
-    });
+    // Note: We can't delete images from ImgBB with the free API
+    // The images will remain on ImgBB but will be removed from our database
 
     await listing.deleteOne();
     res.json({ message: 'Listing deleted successfully' });

@@ -1,37 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from '../utils/axios';
 
 const Home = () => {
-  // Mock featured listings data - replace with actual data from your backend
-  const featuredListings = [
-    {
-      id: 1,
-      title: 'Calculus Textbook',
-      price: 45,
-      image: 'https://images.unsplash.com/photo-1589998059171-988d887df646?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-      category: 'Textbooks',
-      condition: 'Like New',
-      location: 'University Campus'
-    },
-    {
-      id: 2,
-      title: 'Physics Lab Equipment',
-      price: 120,
-      image: 'https://images.unsplash.com/photo-1517971071642-34a2d3eccb5e?auto=format&fit=crop&w=500&q=60',
-      category: 'Lab Equipment',
-      condition: 'Good',
-      location: 'Science Building'
-    },
-    {
-      id: 3,
-      title: 'Organic Chemistry Kit',
-      price: 85,
-      image: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?auto=format&fit=crop&w=500&q=60',
-      category: 'Lab Equipment',
-      condition: 'New',
-      location: 'Chemistry Department'
-    }
-  ];
+  const [featuredListings, setFeaturedListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchFeaturedListings = async () => {
+      try {
+        const response = await axios.get('/api/listings?limit=3&approved=true');
+        setFeaturedListings(response.data);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching featured listings:', err);
+        setError('Failed to load featured listings');
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedListings();
+  }, []);
 
   const categories = [
     { id: 'textbooks', name: 'Textbooks', icon: '📚' },
@@ -114,33 +104,49 @@ const Home = () => {
           <h2 className="text-3xl font-extrabold text-gray-900 text-center mb-8">
             Featured Listings
           </h2>
-          <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredListings.map(listing => (
-              <Link
-                key={listing.id}
-                to={`/listing/${listing.id}`}
-                className="group"
-              >
-                <div className="bg-white shadow rounded-lg overflow-hidden">
-                  <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg">
-                    <img
-                      src={listing.image}
-                      alt={listing.title}
-                      className="w-full h-full object-center object-cover group-hover:opacity-75"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-sm text-gray-700">{listing.title}</h3>
-                    <p className="mt-1 text-lg font-medium text-gray-900">${listing.price}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <p className="text-sm text-gray-500">{listing.condition}</p>
-                      <p className="text-sm text-gray-500">{listing.location}</p>
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center text-red-600">{error}</div>
+          ) : featuredListings.length === 0 ? (
+            <div className="text-center text-gray-500">No featured listings available</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredListings.map(listing => (
+                <Link
+                  key={listing._id}
+                  to={`/listings/${listing._id}`}
+                  className="group"
+                >
+                  <div className="bg-white shadow rounded-lg overflow-hidden">
+                    <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-t-lg">
+                      {listing.images && listing.images.length > 0 ? (
+                        <img
+                          src={listing.images[0]}
+                          alt={listing.title}
+                          className="w-full h-48 object-cover group-hover:opacity-75"
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                          <span className="text-gray-400">No image available</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-sm text-gray-700">{listing.title}</h3>
+                      <p className="mt-1 text-lg font-medium text-gray-900">${listing.price}</p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-sm text-gray-500">{listing.condition}</p>
+                        <p className="text-sm text-gray-500">{listing.location}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+                </Link>
+              ))}
+            </div>
+          )}
           <div className="mt-8 text-center">
             <Link
               to="/listings"
@@ -203,13 +209,13 @@ const Home = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
                   />
                 </svg>
               </div>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">Save Money</h3>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">Fast & Easy</h3>
               <p className="mt-2 text-base text-gray-500">
-                Buy used items at a fraction of the original price and save on your expenses.
+                List your items quickly and connect with buyers instantly.
               </p>
             </div>
 
@@ -225,13 +231,13 @@ const Home = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   />
                 </svg>
               </div>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">Eco-Friendly</h3>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">Community Driven</h3>
               <p className="mt-2 text-base text-gray-500">
-                Reduce waste and promote sustainability by giving items a second life.
+                Connect with fellow students and build a trusted marketplace.
               </p>
             </div>
           </div>

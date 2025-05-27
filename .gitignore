@@ -14,17 +14,11 @@ build/
 .next/
 out/
 
-# Tailwind
-tailwind.config.js
-tailwind.config.cjs
-postcss.config.js
-postcss.config.cjs
-
 # Server files
 server.js
 server.ts
-app.js
-app.ts
+/app.js
+/app.ts
 express/
 api/
 functions/

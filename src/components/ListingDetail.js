@@ -129,9 +129,9 @@ const ListingDetail = () => {
               <div className="aspect-w-16 aspect-h-9 bg-gray-200">
                 {listing.images && listing.images.length > 0 ? (
                   <img
-                    src={`http://localhost:3004/${listing.images[0]}`}
+                    src={listing.images[0]}
                     alt={listing.title}
-                    className="object-cover w-full h-96"
+                    className="w-full h-96 object-cover"
                   />
                 ) : (
                   <div className="flex items-center justify-center h-96">

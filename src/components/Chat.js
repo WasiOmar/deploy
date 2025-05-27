@@ -14,7 +14,7 @@ const Chat = ({ receiverId, listingId }) => {
 
   // Initialize socket connection
   useEffect(() => {
-    socketRef.current = io('http://localhost:3004', {
+    socketRef.current = io(process.env.REACT_APP_BACKEND_BASEURL, {
       query: {
         userId: user.id
       }
