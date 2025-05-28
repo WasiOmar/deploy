@@ -51,7 +51,7 @@ const listingSchema = new mongoose.Schema({
   },
   approved: {
     type: Boolean,
-    default: false
+    default: true
   },
   createdAt: {
     type: Date,
