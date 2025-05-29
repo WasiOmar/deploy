@@ -76,7 +76,7 @@ app.use('/uploads', express.static('uploads'));
 
 // Root route
 app.get('/', (req, res) => {
-  res.json({ message: 'The backend is running fine' });
+  res.json({ message: 'Server running now' });
 });
 
 // Routes
