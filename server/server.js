@@ -104,7 +104,7 @@ app.use(cors({
   maxAge: 86400 // 24 hours in seconds
 }));
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Root route
 app.get('/', (req, res) => {

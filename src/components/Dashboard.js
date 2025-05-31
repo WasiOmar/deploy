@@ -1,192 +1,266 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import axios from '../utils/axios';
+import {
+  Container,
+  Grid,
+  Paper,
+  Typography,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardActions,
+  Avatar,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  Divider,
+  Chip
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Store as StoreIcon,
+  Message as MessageIcon,
+  Person as PersonIcon,
+  School as SchoolIcon,
+  Business as BusinessIcon
+} from '@mui/icons-material';
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('my-listings');
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock listings data - replace with actual data from your backend
-  const listings = [
-    {
-      id: 1,
-      title: 'MacBook Pro 2020',
-      price: 1200,
-      category: 'Electronics',
-      status: 'active',
-      createdAt: '2024-03-15'
-    },
-    {
-      id: 2,
-      title: 'Calculus Textbook',
-      price: 50,
-      category: 'Books',
-      status: 'sold',
-      createdAt: '2024-03-10'
+  const handleDeleteListing = async (listingId) => {
+    if (window.confirm('Are you sure you want to delete this listing? This action cannot be undone.')) {
+      try {
+        await axios.delete(`/api/listings/${listingId}`);
+        // Update the listings in the state after successful deletion
+        setDashboardData(prev => ({
+          ...prev,
+          listings: prev.listings.filter(listing => listing._id !== listingId)
+        }));
+      } catch (err) {
+        console.error('Error deleting listing:', err);
+        alert('Failed to delete listing. Please try again.');
+      }
     }
-  ];
+  };
 
-  // Mock saved listings data - replace with actual data from your backend
-  const savedListings = [
-    {
-      id: 3,
-      title: 'Organic Chemistry Kit',
-      price: 85,
-      seller: 'Jane Smith',
-      createdAt: '2024-03-12'
-    },
-    {
-      id: 4,
-      title: 'Engineering Drawing Set',
-      price: 35,
-      seller: 'Mike Johnson',
-      createdAt: '2024-03-14'
-    }
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [userListings, userMessages] = await Promise.all([
+          axios.get(`/api/listings/user/${user.id}`),
+          axios.get('/api/messages/conversations')
+        ]);
 
-  const renderMyListings = () => (
-    <div className="space-y-6">
-      {listings.map(listing => (
-        <div key={listing.id} className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">{listing.title}</h3>
-              <p className="mt-1 text-sm text-gray-500">Posted on {listing.createdAt}</p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                listing.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-              }`}>
-                {listing.status}
-              </span>
-            </div>
-          </div>
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-lg font-medium text-gray-900">${listing.price}</p>
-            <div className="flex space-x-3">
-              <Link
-                to={`/edit-listing/${listing.id}`}
-                className="text-sm text-indigo-600 hover:text-indigo-500"
-              >
-                Edit
-              </Link>
-              <button
-                onClick={() => {
-                  // Here you would typically handle listing deletion
-                  console.log('Deleting listing:', listing.id);
-                }}
-                className="text-sm text-red-600 hover:text-red-500"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-      <Link
-        to="/create-listing"
-        className="block w-full text-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-      >
-        Create New Listing
-      </Link>
-    </div>
-  );
+        setDashboardData({
+          listings: userListings.data.listings,
+          messages: userMessages.data.conversations || []
+        });
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err.response?.data?.error || 'Error loading dashboard data');
+        setLoading(false);
+      }
+    };
 
-  const renderSavedListings = () => (
-    <div className="space-y-6">
-      {savedListings.map(listing => (
-        <div key={listing.id} className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">{listing.title}</h3>
-              <p className="mt-1 text-sm text-gray-500">Posted by {listing.seller}</p>
-            </div>
-            <p className="text-lg font-medium text-gray-900">${listing.price}</p>
-          </div>
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-gray-500">Saved on {listing.createdAt}</p>
-            <div className="flex space-x-3">
-              <Link
-                to={`/listing/${listing.id}`}
-                className="text-sm text-indigo-600 hover:text-indigo-500"
-              >
-                View Details
-              </Link>
-              <button className="text-sm text-red-600 hover:text-red-500">
-                Remove
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+    fetchDashboardData();
+  }, [user.id]);
+
+  if (loading) {
+    return (
+      <Container>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <Typography color="error">{error}</Typography>
+        </Box>
+      </Container>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="lg:grid lg:grid-cols-12 lg:gap-x-8">
-          {/* Profile sidebar */}
-          <div className="lg:col-span-4">
-            <div className="bg-white shadow rounded-lg p-6">
-              <div className="flex items-center space-x-4">
-                <div className="h-16 w-16 rounded-full bg-gray-200 flex items-center justify-center">
-                  <span className="text-2xl font-medium text-gray-500">
-                    {/* Initials will be added when user data is available */}
-                  </span>
-                </div>
-                <div>
-                  <h2 className="text-xl font-medium text-gray-900">Welcome!</h2>
-                  <p className="text-sm text-gray-500">Please complete your profile</p>
-                </div>
-              </div>
-              <div className="mt-6">
-                <Link
-                  to="/profile"
-                  className="w-full text-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Complete Profile
-                </Link>
-              </div>
-            </div>
-          </div>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* User Profile Summary */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={4}>
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Box sx={{ textAlign: 'center', mb: 2 }}>
+              <Avatar
+                sx={{ width: 80, height: 80, mx: 'auto', mb: 2, bgcolor: 'primary.main' }}
+              >
+                {user.firstName?.[0]}{user.lastName?.[0]}
+              </Avatar>
+              <Typography variant="h5" gutterBottom>
+                {user.firstName} {user.lastName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {user.email}
+              </Typography>
+              {user.university && (
+                <Chip icon={<SchoolIcon />} label={user.university} sx={{ mr: 1, mb: 1 }} />
+              )}
+              {user.department && (
+                <Chip icon={<BusinessIcon />} label={user.department} sx={{ mb: 1 }} />
+              )}
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<PersonIcon />}
+                onClick={() => navigate(`/profile/${user.id}`)}
+              >
+                Edit Profile
+              </Button>
+            </Box>
+          </Paper>
 
-          {/* Main content */}
-          <div className="mt-8 lg:mt-0 lg:col-span-8">
-            <div className="bg-white shadow rounded-lg">
-              {/* Tabs */}
-              <div className="border-b border-gray-200">
-                <nav className="-mb-px flex">
-                  <button
-                    onClick={() => setActiveTab('my-listings')}
-                    className={`${
-                      activeTab === 'my-listings'
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    } w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm`}
-                  >
-                    My Listings
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('saved')}
-                    className={`${
-                      activeTab === 'saved'
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    } w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm`}
-                  >
-                    Saved Listings
-                  </button>
-                </nav>
-              </div>
+          {/* Quick Actions */}
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Quick Actions
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/create-listing')}
+                fullWidth
+      >
+        Create New Listing
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<MessageIcon />}
+                onClick={() => navigate('/messages')}
+                fullWidth
+              >
+                View Messages
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
 
-              {/* Tab content */}
-              <div className="p-6">
-                {activeTab === 'my-listings' ? renderMyListings() : renderSavedListings()}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        {/* Main Content */}
+        <Grid item xs={12} md={8}>
+          {/* My Listings */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6">
+                My Listings
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/create-listing')}
+                size="small"
+              >
+                Add New
+              </Button>
+            </Box>
+            <Grid container spacing={2}>
+              {dashboardData?.listings?.length > 0 ? (
+                dashboardData.listings.map((listing) => (
+                  <Grid item xs={12} sm={6} key={listing._id}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" noWrap>
+                          {listing.title}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                          ${listing.price}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={listing.status || 'Active'}
+                          color={listing.status === 'sold' ? 'success' : 'primary'}
+                          sx={{ mr: 1 }}
+                        />
+                        <Chip
+                          size="small"
+                          label={listing.condition}
+                        />
+                      </CardContent>
+                      <CardActions>
+                        <Button 
+                          size="small" 
+                          onClick={() => navigate(`/listings/${listing._id}`)}
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          size="small" 
+                          color="error"
+                          onClick={() => handleDeleteListing(listing._id)}
+                        >
+                          Delete
+                        </Button>
+                      </CardActions>
+                    </Card>
+                  </Grid>
+                ))
+              ) : (
+                <Grid item xs={12}>
+                  <Typography variant="body1" color="text.secondary" align="center">
+                    You haven't created any listings yet.
+                  </Typography>
+                </Grid>
+              )}
+            </Grid>
+          </Paper>
+
+          {/* Recent Messages */}
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Recent Messages
+            </Typography>
+            {dashboardData?.messages?.length > 0 ? (
+              <List>
+                {dashboardData.messages.slice(0, 5).map((conversation, index) => (
+                  <React.Fragment key={conversation._id}>
+                    {index > 0 && <Divider component="li" />}
+                    <ListItem
+                      button
+                      onClick={() => navigate(`/messages/${conversation.otherUser._id}`)}
+                    >
+                      <ListItemAvatar>
+                        <Avatar>
+                          {conversation.otherUser.firstName[0]}
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText
+                        primary={`${conversation.otherUser.firstName} ${conversation.otherUser.lastName}`}
+                        secondary={conversation.lastMessage?.content || 'No messages yet'}
+                      />
+                    </ListItem>
+                  </React.Fragment>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body1" color="text.secondary" align="center">
+                No recent messages.
+              </Typography>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 

@@ -11,7 +11,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
-import Profile from './components/Profile';
+import Profile from './pages/Profile';
 import Dashboard from './components/Dashboard';
 import SearchSection from './components/SearchSection';
 import ListingsPage from './components/ListingsPage';

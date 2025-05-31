@@ -232,4 +232,20 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// Get listings by user ID
+router.get('/user/:id', async (req, res) => {
+  try {
+    console.log('Fetching listings for user:', req.params.id);
+    const listings = await Listing.find({ user: req.params.id })
+      .sort({ createdAt: -1 })
+      .populate('user', 'firstName lastName email');
+
+    console.log('Found listings:', listings);
+    res.json({ listings });
+  } catch (err) {
+    console.error('Error fetching user listings:', err);
+    res.status(500).json({ error: 'Error fetching listings' });
+  }
+});
+
 module.exports = router; 

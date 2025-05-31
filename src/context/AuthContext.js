@@ -42,11 +42,25 @@ export const AuthProvider = ({ children }) => {
             id: tokenUser.id || tokenUser._id,
             email: tokenUser.email || user?.email,
             firstName: tokenUser.firstName || tokenUser.name || user?.firstName,
-            isAdmin: tokenUser.isAdmin // Use isAdmin directly from token
+            isAdmin: tokenUser.isAdmin, // Use isAdmin directly from token
+            profilePicture: tokenUser.profilePicture // Include profile picture
           };
           
           console.log('Setting user data from token:', userData);
           setUser(userData);
+
+          // Fetch latest user data including profile picture
+          try {
+            const response = await axios.get(`/api/users/profile/${userData.id}`);
+            if (response.data.user) {
+              setUser(prevUser => ({
+                ...prevUser,
+                ...response.data.user
+              }));
+            }
+          } catch (err) {
+            console.error('Error fetching latest user data:', err);
+          }
         }
         setError(null);
       } catch (err) {
@@ -164,6 +178,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Update profile picture
+  const updateProfilePicture = async (imageUrl) => {
+    try {
+      setUser(prevUser => ({
+        ...prevUser,
+        profilePicture: imageUrl
+      }));
+      return { success: true };
+    } catch (err) {
+      console.error('Error updating profile picture:', err);
+      return { success: false, error: 'Failed to update profile picture' };
+    }
+  };
+
   useEffect(() => {
     loadUser();
   }, [token]);
@@ -171,7 +199,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user: user ? {
       ...user,
-      isAdmin: user.isAdmin || false // Ensure isAdmin is explicitly included
+      isAdmin: user.isAdmin || false, // Ensure isAdmin is explicitly included
+      profilePicture: user.profilePicture // Ensure profile picture is included
     } : null,
     token,
     loading,
@@ -181,7 +210,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     updatePassword,
-    deleteAccount
+    deleteAccount,
+    updateProfilePicture // Add the new function to context
   };
 
   return (
