@@ -2,6 +2,12 @@
 
 A modern, feature-rich marketplace platform specifically designed for students to buy, sell, and exchange items and services within their academic community.
 
+## 📜 Project History
+
+This project was initially created during CodeRush 2025, a prestigious 24-hour hackathon organized by the IUT Computer Society (IUTCS) and the Department of Computer Science and Engineering at Islamic University of Technology. In just one intense day of coding and creativity, our team built the core functionality of this marketplace platform during the intra-IUT ICT fest that brings together talented developers to create innovative solutions.
+
+What started as an ambitious one-day project has since evolved into a fully-featured platform. After the successful demonstration at CodeRush 2025, the platform has been continuously enhanced with additional features, improved security measures, and a more robust architecture to better serve the student community. The current version represents a significant evolution from its hackathon origins, incorporating user feedback and modern development practices.
+
 ## 📸 Platform Overview
 
 ### User Interface
