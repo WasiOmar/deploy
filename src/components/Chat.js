@@ -22,7 +22,10 @@ const Chat = ({ receiverId, listingId }) => {
 
     // Listen for new messages
     socketRef.current.on('newMessage', (message) => {
-      setMessages(prevMessages => [...prevMessages, message]);
+      // Only add the message if it's from the other user
+      if (message.sender._id !== user.id) {
+        setMessages(prevMessages => [...prevMessages, message]);
+      }
     });
 
     return () => {
@@ -62,13 +65,12 @@ const Chat = ({ receiverId, listingId }) => {
         content: newMessage
       });
 
-      // Emit the message through socket
-      socketRef.current.emit('sendMessage', {
-        ...response.data,
-        receiver: receiverId
-      });
-
+      // Add the message to the local state
       setMessages(prevMessages => [...prevMessages, response.data]);
+      
+      // Emit the message through socket for other users
+      socketRef.current.emit('sendMessage', response.data);
+      
       setNewMessage('');
     } catch (err) {
       setError('Failed to send message');

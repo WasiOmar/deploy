@@ -16,6 +16,34 @@ const chatRoutes = require('./routes/chat');
 
 const app = express();
 
+// Create HTTP server
+const http = require('http');
+const server = http.createServer(app);
+
+// Initialize Socket.IO with CORS configuration
+const io = require('socket.io')(server, {
+  cors: {
+    origin: process.env.NODE_ENV === 'production' 
+      ? ['https://deploy-wkrs.vercel.app', 'https://deploy-last-nu.vercel.app']
+      : ['http://localhost:3000', 'http://localhost:3004'],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.handshake.query.userId);
+
+  socket.on('sendMessage', (message) => {
+    io.emit('newMessage', message);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.handshake.query.userId);
+  });
+});
+
 // Check for required environment variables
 if (!process.env.MONGO_URL) {
   console.error('MONGO_URL is not defined in environment variables');
@@ -26,8 +54,12 @@ if (!process.env.MONGO_URL) {
 const mongooseOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
+  serverSelectionTimeoutMS: 30000,
   socketTimeoutMS: 45000,
+  family: 4,
+  connectTimeoutMS: 30000,
+  maxPoolSize: 10,
+  minPoolSize: 1
 };
 
 // Connect to MongoDB
@@ -56,8 +88,8 @@ mongoose.connection.on('disconnected', () => {
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://deploy-wkrs.vercel.app', 'https://deploy-last-nu.vercel.app', 'http://localhost:3000']
-    : ['http://localhost:3000'],
+    ? ['https://deploy-wkrs.vercel.app', 'https://deploy-last-nu.vercel.app']
+    : ['http://localhost:3000', 'http://localhost:3004'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -109,7 +141,7 @@ app.use((err, req, res, next) => {
 // For local development
 if (process.env.NODE_ENV !== 'production') {
   const startServer = (port) => {
-    const server = app.listen(port, () => {
+    server.listen(port, () => {
       console.log(`Server running on port ${port}`);
     }).on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
