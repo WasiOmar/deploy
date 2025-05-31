@@ -18,7 +18,14 @@ import {
   ListItemAvatar,
   Chip,
   Alert,
-  Snackbar
+  Snackbar,
+  Card,
+  CardContent,
+  CardMedia,
+  IconButton,
+  Stack,
+  Tab,
+  Tabs
 } from '@mui/material';
 import {
   School as SchoolIcon,
@@ -27,7 +34,10 @@ import {
   Email as EmailIcon,
   Edit as EditIcon,
   Save as SaveIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  LocationOn as LocationIcon,
+  Store as StoreIcon,
+  Person as PersonIcon
 } from '@mui/icons-material';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';
 
@@ -41,6 +51,7 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [currentTab, setCurrentTab] = useState(0);
   const [editForm, setEditForm] = useState({
     firstName: '',
     lastName: '',
@@ -192,56 +203,243 @@ const Profile = () => {
 
   const isOwnProfile = currentUser && currentUser.id === id;
 
+  const handleTabChange = (event, newValue) => {
+    setCurrentTab(newValue);
+  };
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4" component="h1">
-            {isOwnProfile ? 'My Profile' : `${profile.firstName}'s Profile`}
-          </Typography>
-          {isOwnProfile && !isEditing && (
-            <Button
-              variant="contained"
-              startIcon={<EditIcon />}
-              onClick={handleEditClick}
-            >
-              Edit Profile
-            </Button>
-          )}
-        </Box>
+      {/* Profile Header */}
+      <Paper 
+        elevation={0}
+        sx={{ 
+          p: 3, 
+          mb: 3, 
+          borderRadius: 2,
+          background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%)',
+          color: '#1a237e'
+        }}
+      >
+        <Grid container spacing={3} alignItems="center">
+          <Grid item xs={12} md={3}>
+            {isOwnProfile ? (
+              <ProfilePictureUpload
+                userId={id}
+                currentPicture={profile.profilePicture}
+                onUploadSuccess={handleProfilePictureUpdate}
+              />
+            ) : (
+              <Avatar
+                src={profile.profilePicture}
+                sx={{
+                  width: 150,
+                  height: 150,
+                  mx: 'auto',
+                  border: '4px solid white',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}
+              />
+            )}
+          </Grid>
+          <Grid item xs={12} md={9}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <Box>
+                <Typography variant="h3" component="h1" sx={{ mb: 1, color: '#1a237e' }}>
+                  {profile.firstName} {profile.lastName}
+                </Typography>
+                <Typography variant="h6" sx={{ mb: 2, color: '#3949ab' }}>
+                  {profile.department} @ {profile.university}
+                </Typography>
+                {profile.bio && (
+                  <Typography variant="body1" sx={{ mb: 2, maxWidth: '600px', color: '#424242' }}>
+                    {profile.bio}
+                  </Typography>
+                )}
+              </Box>
+              {isOwnProfile && !isEditing && (
+                <Button
+                  variant="contained"
+                  startIcon={<EditIcon />}
+                  onClick={handleEditClick}
+                  sx={{ 
+                    bgcolor: 'white',
+                    color: '#1a237e',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    '&:hover': {
+                      bgcolor: '#f5f5f5',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }
+                  }}
+                >
+                  Edit Profile
+                </Button>
+              )}
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
 
-        {isEditing ? (
+      {/* Tabs Navigation */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={currentTab} onChange={handleTabChange} aria-label="profile tabs">
+          <Tab icon={<PersonIcon />} label="Information" />
+          <Tab icon={<StoreIcon />} label="Listings" />
+        </Tabs>
+      </Box>
+
+      {/* Tab Content */}
+      <div role="tabpanel" hidden={currentTab !== 0}>
+        {currentTab === 0 && (
+          <Grid container spacing={3}>
+            {/* Contact Information */}
+            <Grid item xs={12} md={6}>
+              <Card elevation={0} sx={{ height: '100%', borderRadius: 2 }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+                    Contact Information
+                  </Typography>
+                  <List>
+                    <ListItem>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: 'primary.light' }}>
+                          <EmailIcon />
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText primary="Email" secondary={profile.email} />
+                    </ListItem>
+                    {profile.phone && (
+                      <ListItem>
+                        <ListItemAvatar>
+                          <Avatar sx={{ bgcolor: 'primary.light' }}>
+                            <PhoneIcon />
+                          </Avatar>
+                        </ListItemAvatar>
+                        <ListItemText primary="Phone" secondary={profile.phone} />
+                      </ListItem>
+                    )}
+                  </List>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Academic Information */}
+            <Grid item xs={12} md={6}>
+              <Card elevation={0} sx={{ height: '100%', borderRadius: 2 }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ mb: 2, color: 'primary.main' }}>
+                    Academic Information
+                  </Typography>
+                  <List>
+                    <ListItem>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: 'primary.light' }}>
+                          <SchoolIcon />
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText primary="University" secondary={profile.university} />
+                    </ListItem>
+                    <ListItem>
+                      <ListItemAvatar>
+                        <Avatar sx={{ bgcolor: 'primary.light' }}>
+                          <BusinessIcon />
+                        </Avatar>
+                      </ListItemAvatar>
+                      <ListItemText primary="Department" secondary={profile.department} />
+                    </ListItem>
+                  </List>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+      </div>
+
+      <div role="tabpanel" hidden={currentTab !== 1}>
+        {currentTab === 1 && (
+          <Grid container spacing={3}>
+            {listings.map((listing) => (
+              <Grid item xs={12} sm={6} md={4} key={listing._id}>
+                <Card 
+                  elevation={0}
+                  sx={{ 
+                    height: '100%',
+                    borderRadius: 2,
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 3
+                    }
+                  }}
+                >
+                  <CardMedia
+                    component="img"
+                    height="200"
+                    image={listing.images[0] || 'https://via.placeholder.com/200'}
+                    alt={listing.title}
+                    sx={{ objectFit: 'cover' }}
+                  />
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      {listing.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      {listing.description}
+                    </Typography>
+                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="h6" color="primary">
+                        ${listing.price}
+                      </Typography>
+                      <Chip 
+                        label={listing.status} 
+                        color={listing.status === 'Available' ? 'success' : 'default'}
+                        size="small"
+                      />
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </div>
+
+      {/* Edit Form Dialog */}
+      {isEditing && (
+        <Paper sx={{ p: 3, mt: 3, borderRadius: 2 }}>
+          <Typography variant="h6" sx={{ mb: 3 }}>
+            Edit Profile
+          </Typography>
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3}>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  required
                   fullWidth
                   label="First Name"
                   name="firstName"
                   value={editForm.firstName}
                   onChange={handleChange}
+                  required
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  required
                   fullWidth
                   label="Last Name"
                   name="lastName"
                   value={editForm.lastName}
                   onChange={handleChange}
+                  required
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  required
                   fullWidth
                   label="Email"
                   name="email"
                   type="email"
                   value={editForm.email}
                   onChange={handleChange}
+                  required
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
@@ -262,7 +460,7 @@ const Profile = () => {
                   onChange={handleChange}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12}>
                 <TextField
                   fullWidth
                   label="Phone"
@@ -276,19 +474,24 @@ const Profile = () => {
                   fullWidth
                   label="Bio"
                   name="bio"
-                  multiline
-                  rows={4}
                   value={editForm.bio}
                   onChange={handleChange}
+                  multiline
+                  rows={4}
                 />
               </Grid>
               <Grid item xs={12}>
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                   <Button
-                    type="button"
                     variant="outlined"
                     startIcon={<CancelIcon />}
                     onClick={handleCancelEdit}
+                    sx={{
+                      bgcolor: 'white',
+                      '&:hover': {
+                        bgcolor: '#f5f5f5'
+                      }
+                    }}
                   >
                     Cancel
                   </Button>
@@ -296,6 +499,15 @@ const Profile = () => {
                     type="submit"
                     variant="contained"
                     startIcon={<SaveIcon />}
+                    sx={{
+                      bgcolor: 'white',
+                      color: '#1a237e',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      '&:hover': {
+                        bgcolor: '#f5f5f5',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                      }
+                    }}
                   >
                     Save Changes
                   </Button>
@@ -303,82 +515,16 @@ const Profile = () => {
               </Grid>
             </Grid>
           </form>
-        ) : (
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
-              <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <ProfilePictureUpload
-                  userId={id}
-                  currentPicture={profile.profilePicture}
-                  onUploadSuccess={handleProfilePictureUpdate}
-                />
-                <Typography variant="h5" gutterBottom>
-                  {profile.firstName} {profile.lastName}
-                </Typography>
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, flexWrap: 'wrap' }}>
-                  {profile.university && (
-                    <Chip icon={<SchoolIcon />} label={profile.university} />
-                  )}
-                  {profile.department && (
-                    <Chip icon={<BusinessIcon />} label={profile.department} />
-                  )}
-                </Box>
-              </Box>
-            </Grid>
-            <Grid item xs={12} md={8}>
-              <List>
-                <ListItem>
-                  <ListItemAvatar>
-                    <Avatar>
-                      <EmailIcon />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText primary="Email" secondary={profile.email} />
-                </ListItem>
-                {profile.phone && (
-                  <ListItem>
-                    <ListItemAvatar>
-                      <Avatar>
-                        <PhoneIcon />
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText primary="Phone" secondary={profile.phone} />
-                  </ListItem>
-                )}
-              </List>
-              {profile.bio && (
-                <>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="h6" gutterBottom>
-                    About
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    {profile.bio}
-                  </Typography>
-                </>
-              )}
-            </Grid>
-          </Grid>
-        )}
-      </Paper>
+        </Paper>
+      )}
 
       <Snackbar
-        open={!!error || !!success}
+        open={!!success}
         autoHideDuration={6000}
-        onClose={() => {
-          setError(null);
-          setSuccess(null);
-        }}
+        onClose={() => setSuccess(null)}
       >
-        <Alert
-          onClose={() => {
-            setError(null);
-            setSuccess(null);
-          }}
-          severity={error ? 'error' : 'success'}
-          sx={{ width: '100%' }}
-        >
-          {error || success}
+        <Alert severity="success" onClose={() => setSuccess(null)}>
+          {success}
         </Alert>
       </Snackbar>
     </Container>
