@@ -56,7 +56,7 @@ mongoose.connection.on('disconnected', () => {
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://deploy-wkrs.vercel.app', 'http://localhost:3000']
+    ? ['https://deploy-wkrs.vercel.app', 'https://deploy-last-nu.vercel.app', 'http://localhost:3000']
     : ['http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
